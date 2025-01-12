@@ -1,0 +1,54 @@
+{
+    "Angielski": {
+        "czasowniki": [
+            {
+                "word": "run",
+                "translation": "biegać",
+                "example_sentence": "I run every day."
+            },
+            {
+                "word": "eat",
+                "translation": "jeść",
+                "example_sentence": "I eat lunch at noon."
+            }
+        ],
+        "rzeczowniki": [
+            {
+                "word": "book",
+                "translation": "książka",
+                "example_sentence": "This is my favorite book."
+            },
+            {
+                "word": "dog",
+                "translation": "pies",
+                "example_sentence": "The dog is barking."
+            }
+        ]
+    },
+    "Hiszpański": {
+        "czasowniki": [
+            {
+                "word": "correr",
+                "translation": "biegać",
+                "example_sentence": "Corro todos los días."
+            },
+            {
+                "word": "comer",
+                "translation": "jeść",
+                "example_sentence": "Como a las doce."
+            }
+        ],
+        "rzeczowniki": [
+            {
+                "word": "libro",
+                "translation": "książka",
+                "example_sentence": "Este es mi libro favorito."
+            },
+            {
+                "word": "perro",
+                "translation": "pies",
+                "example_sentence": "El perro está ladrando."
+            }
+        ]
+    }
+}
