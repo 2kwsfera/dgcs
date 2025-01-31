@@ -388,11 +388,11 @@ class LanguageLearningApp(QWidget):
         user_answer = self.user_answer_input.text().strip()
         if hasattr(self, 'correct_answer'):
             if user_answer.lower() == self.correct_answer.lower():
-                self.quiz_feedback_label.setText("Correct!")
+                self.quiz_feedback_label.setText("Dobrze!")
             else:
-                self.quiz_feedback_label.setText(f"Incorrect! The correct answer was: {self.correct_answer}")
+                self.quiz_feedback_label.setText(f"Źle! Poprawna odpowiedź to:{self.correct_answer}")
         else:
-            self.quiz_feedback_label.setText("No question has been asked yet.")
+            self.quiz_feedback_label.setText("Nie było jeszcze pytania.")
         self.user_answer_input.clear()
 
     def start_quiz(self):
