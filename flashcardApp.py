@@ -16,18 +16,69 @@ class LanguageLearningApp(QWidget):
         self.setWindowTitle("Aplikacja do Nauki Języków")
         self.setMinimumSize(1500, 700)
         self.setStyleSheet("""
-            QWidget { background-color: #E8F0FE; color: #333; font-family: 'Roboto', sans-serif; border-radius: 8px; }
-            QLabel { font-size: 22px; color: #444; }
-            QPushButton { background-color: #1E88E5; color: white; border-radius: 8px; padding: 10px; font-size: 18px; font-weight: bold; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); }
-            QPushButton:hover { background-color: #1565C0; }
-            QLineEdit, QComboBox { border: 1px solid #CCC; padding: 8px; border-radius: 5px; background-color: #FFF; font-size: 18px; }
-            QTabWidget::pane { border: 1px solid #CCC; border-radius: 8px; background-color: #FFF; }
-            QTabBar::tab { background: #D1E3FF; border: 1px solid #CCC; padding: 10px; border-top-left-radius: 8px; border-top-right-radius: 8px; font-size: 18px; }
-            QTabBar::tab:selected { background: #1E88E5; color: white; }
-            QTabBar::tab:hover { background: #A0C4FF; }
-            QTableWidget { border: 1px solid #DDD; background-color: #FFF; font-size: 18px; border-radius: 8px; }
-            QTableWidget::item { padding: 10px; }
-        """)
+    QWidget { 
+        background-color: #F5F5F5; 
+        color: #333; 
+        font-family: 'Roboto', sans-serif; 
+        border-radius: 8px; 
+    }
+    QLabel { 
+        font-size: 20px; 
+        color: #444; 
+    }
+    QPushButton { 
+        background-color: #1E88E5; 
+        color: white; 
+        border-radius: 8px; 
+        padding: 10px; 
+        font-size: 16px; 
+        font-weight: bold; 
+        box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); 
+    }
+    QPushButton:hover { 
+        background-color: #1565C0; 
+    }
+    QLineEdit, QComboBox { 
+        border: 1px solid #CCC; 
+        padding: 8px; 
+        border-radius: 5px; 
+        background-color: #FFF; 
+        font-size: 16px; 
+    }
+    QTabWidget::pane { 
+        border: 1px solid #CCC; 
+        border-radius: 8px; 
+        background-color: #FFF; 
+    }
+    QTabBar::tab { 
+        background: #D1E3FF; 
+        border: 1px solid #CCC; 
+        padding: 10px; 
+        border-top-left-radius: 8px; 
+        border-top-right-radius: 8px; 
+        font-size: 16px; 
+    }
+    QTabBar::tab:selected { 
+        background: #1E88E5; 
+        color: white; 
+    }
+    QTabBar::tab:hover { 
+        background: #A0C4FF; 
+    }
+    QTableWidget { 
+        border: 1px solid #DDD; 
+        background-color: #FFF; 
+        font-size: 16px; 
+        border-radius: 8px; 
+    }
+    QTableWidget::item { 
+        padding: 10px; 
+    }
+    QTableWidget::item:selected { 
+        background-color: #B3E5FC; 
+    }
+""")
+
         self.data_file = "flashcards.json"
         self.load_data()
         self.layout = QVBoxLayout()
