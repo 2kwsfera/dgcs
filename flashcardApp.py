@@ -2,14 +2,174 @@ import json
 import os
 import random
 from PySide6.QtWidgets import (
-    QApplication, QWidget, QVBoxLayout, QHBoxLayout, QTabWidget, QLabel, QLineEdit,
+    QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
     QComboBox, QPushButton, QTableWidget, QTableWidgetItem, QInputDialog, QMessageBox,
-    QSplitter, QCheckBox, QStackedWidget, QListWidget, QListWidgetItem, QAbstractItemView, QSlider
+    QCheckBox, QStackedWidget, QListWidget, QAbstractItemView, QScrollArea
 )
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QIcon
+from PySide6.QtGui import QScreen
 from googletrans import Translator
+from huggingface_hub import InferenceClient
+import mysql.connector
 
+
+# Klasa do zarządzania połączeniem z bazą danych
+class DatabaseManager:
+    def __init__(self, host, user, password, database):
+        self.host = host
+        self.user = user
+        self.password = password
+        self.database = database
+        self.connection = None
+
+    def connect(self):
+        try:
+            self.connection = mysql.connector.connect(
+                host=self.host,
+                user=self.user,
+                password=self.password,
+                database=self.database
+            )
+            print("Połączono z bazą danych!")
+        except mysql.connector.Error as err:
+            print(f"Błąd połączenia z bazą danych: {err}")
+
+    def disconnect(self):
+        if self.connection:
+            self.connection.close()
+            print("Rozłączono z bazą danych.")
+
+    def execute_query(self, query, params=None):
+        cursor = self.connection.cursor()
+        try:
+            cursor.execute(query, params or ())
+            self.connection.commit()
+            return cursor
+        except mysql.connector.Error as err:
+            print(f"Błąd wykonania zapytania: {err}")
+            return None
+        finally:
+            cursor.close()
+
+    def fetch_one(self, query, params=None):
+        cursor = self.connection.cursor()
+        try:
+            cursor.execute(query, params or ())
+            result = cursor.fetchone()  # Odczytaj wynik
+            return result
+        except mysql.connector.Error as err:
+            print(f"Błąd wykonania zapytania: {err}")
+            return None
+        finally:
+            cursor.close()  # Zamknij kursor
+
+    def fetch_all(self, query, params=None):
+        cursor = self.connection.cursor()
+        try:
+            cursor.execute(query, params or ())
+            result = cursor.fetchall()  # Odczytaj wszystkie wyniki
+            return result
+        except mysql.connector.Error as err:
+            print(f"Błąd wykonania zapytania: {err}")
+            return []
+        finally:
+            cursor.close()  # Zamknij kursor
+
+
+# Funkcja do generowania przykładowych zdań
+def generate_example_sentence(word, language):
+    try:
+        client = InferenceClient(
+            model="gpt2",
+            token="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"
+        )
+        forbidden_words = ["słowo", "słowo", "słowo"]
+        if any(forbidden_word in word.lower() for forbidden_word in forbidden_words):
+            return "Przykładowe zdanie nie może być wygenerowane dla tego słowa."
+
+        prompt = f"Create a short, example sentence with the word '{word}'"
+        generated_text = client.text_generation(
+            prompt,
+            max_new_tokens=50,
+            temperature=0.7,
+            do_sample=True,
+            top_k=50,
+            top_p=0.95,
+        )
+
+        sentence = generated_text.strip()
+        if not sentence.endswith("."):
+            sentence += "."
+
+        target_language = get_language_code(language)
+        if target_language != "en":
+            translator = Translator()
+            sentence = translator.translate(sentence, dest=target_language).text
+
+        return sentence
+
+    except Exception as e:
+        print(f"Błąd generowania: {str(e)}")
+        return f"Błąd generowania: {str(e)}"
+
+
+# Funkcja do pobierania kodu języka
+def get_language_code(language_name):
+    language_codes = {
+        "Angielski": "en",
+        "Hiszpański": "es",
+        "Francuski": "fr",
+        "Niemiecki": "de",
+        "Włoski": "it",
+        "Polski": "pl",
+        "Portugalski": "pt",
+        "Rosyjski": "ru",
+        "Chiński": "zh-CN",
+        "Japoński": "ja",
+        "Koreański": "ko",
+        "Arabski": "ar",
+        "Turecki": "tr",
+        "Holenderski": "nl",
+        "Hindi": "hi",
+        "Bengalski": "bn",
+        "Portugalski (Brazylia)": "pt-BR",
+        "Wietnamski": "vi",
+        "Tajski": "th",
+        "Grecki": "el",
+        "Czeski": "cs",
+        "Szwedzki": "sv",
+        "Duński": "da",
+        "Fiński": "fi",
+        "Norweski": "no",
+        "Węgierski": "hu",
+        "Hebrajski": "he",
+        "Perski": "fa",
+        "Malajski": "ms",
+        "Indonezyjski": "id",
+        "Filipiński": "tl",
+        "Ukraiński": "uk",
+        "Rumuński": "ro",
+        "Słowacki": "sk",
+        "Kataloński": "ca",
+        "Serbski": "sr",
+        "Chorwacki": "hr",
+        "Bułgarski": "bg",
+        "Litewski": "lt",
+        "Łotewski": "lv",
+        "Estoński": "et",
+        "Słoweński": "sl",
+        "Albański": "sq",
+        "Macedoński": "mk",
+        "Afrikaans": "af",
+        "Suahili": "sw",
+        "Zulu": "zu",
+        "Xhosa": "xh",
+        "Irlandzki": "ga"
+    }
+    return language_codes.get(language_name, "en")
+
+
+# Główna klasa aplikacji
 class LanguageLearningApp(QWidget):
     def __init__(self):
         super().__init__()
@@ -19,12 +179,22 @@ class LanguageLearningApp(QWidget):
         self.words_learned = set()
         self.dark_theme = True
         self.setWindowTitle("Talkie")
-        self.setMinimumSize(1500, 700)
+        self.setMinimumSize(300, 500)
         self.apply_theme()
         self.data_file = "flashcards.json"
         self.users_file = "users.json"
         self.load_data()
         self.current_user = None
+
+        # Połączenie z bazą danych
+        self.db_manager = DatabaseManager(
+            host="localhost",
+            user="root",  # Domyślny użytkownik XAMPP
+            password="",  # Domyślne hasło XAMPP
+            database="language_learning"  # Nazwa bazy danych
+        )
+        self.db_manager.connect()
+
         self.layout = QHBoxLayout()
         self.setup_ui()
         self.setLayout(self.layout)
@@ -347,28 +517,7 @@ class LanguageLearningApp(QWidget):
             with open(self.data_file, "r", encoding="utf-8") as file:
                 self.categories = json.load(file)
         else:
-            self.categories = {
-                "Angielski": {
-                    "czasowniki": [
-                        {"word": "run", "translation": "biegać", "example_sentence": "I run every day."},
-                        {"word": "eat", "translation": "jeść", "example_sentence": "I eat lunch at noon."}
-                    ],
-                    "rzeczowniki": [
-                        {"word": "book", "translation": "książka", "example_sentence": "This is my favorite book."},
-                        {"word": "dog", "translation": "pies", "example_sentence": "The dog is barking."}
-                    ]
-                },
-                "Hiszpański": {
-                    "czasowniki": [
-                        {"word": "correr", "translation": "biegać", "example_sentence": "Corro todos los días."},
-                        {"word": "comer", "translation": "jeść", "example_sentence": "Como a las doce."}
-                    ],
-                    "rzeczowniki": [
-                        {"word": "libro", "translation": "książka", "example_sentence": "Este es mi libro favorito."},
-                        {"word": "perro", "translation": "pies", "example_sentence": "El perro está ladrando."}
-                    ]
-                }
-            }
+            self.categories = {}
 
         if os.path.exists(self.users_file):
             with open(self.users_file, "r", encoding="utf-8") as file:
@@ -606,12 +755,18 @@ class LanguageLearningApp(QWidget):
         username = self.login_username_input.text().strip()
         password = self.login_password_input.text().strip()
         if username and password:
-            for user in self.users:
-                if user["username"] == username and user["password"] == password:
-                    self.current_user = user
-                    QMessageBox.information(self, "Sukces", "Zalogowano pomyślnie!")
-                    return
-            QMessageBox.warning(self, "Błąd", "Nieprawidłowa nazwa użytkownika lub hasło!")
+            query = "SELECT * FROM users WHERE username = %s AND password = %s"
+            user = self.db_manager.fetch_one(query, (username, password))
+            if user:
+                self.current_user = {
+                    "id": user[0],  # Pobierz identyfikator użytkownika
+                    "username": user[1],
+                    "email": user[2],
+                    "password": user[3]
+                }
+                QMessageBox.information(self, "Sukces", "Zalogowano pomyślnie!")
+            else:
+                QMessageBox.warning(self, "Błąd", "Nieprawidłowa nazwa użytkownika lub hasło!")
         else:
             QMessageBox.warning(self, "Błąd", "Wprowadź nazwę użytkownika i hasło!")
 
@@ -620,16 +775,22 @@ class LanguageLearningApp(QWidget):
         email = self.register_email_input.text().strip()
         password = self.register_password_input.text().strip()
         if username and email and password:
-            for user in self.users:
-                if user["username"] == username:
-                    QMessageBox.warning(self, "Błąd", "Użytkownik o tej nazwie już istnieje!")
-                    return
-            self.users.append({
+            query = "SELECT * FROM users WHERE username = %s"
+            existing_user = self.db_manager.fetch_one(query, (username,))
+            if existing_user:
+                QMessageBox.warning(self, "Błąd", "Użytkownik o tej nazwie już istnieje!")
+                return
+            query = "INSERT INTO users (username, email, password) VALUES (%s, %s, %s)"
+            self.db_manager.execute_query(query, (username, email, password))
+            # Pobierz identyfikator nowo zarejestrowanego użytkownika
+            query = "SELECT id FROM users WHERE username = %s"
+            user_id = self.db_manager.fetch_one(query, (username,))[0]
+            self.current_user = {
+                "id": user_id,
                 "username": username,
                 "email": email,
                 "password": password
-            })
-            self.save_data()
+            }
             QMessageBox.information(self, "Sukces", "Zarejestrowano pomyślnie!")
         else:
             QMessageBox.warning(self, "Błąd", "Wszystkie pola muszą być wypełnione!")
@@ -661,10 +822,13 @@ class LanguageLearningApp(QWidget):
             self.quiz_subcategory_selector.addItems(self.categories[category].keys())
 
     def update_flashcard_table(self):
+        if not self.current_user:
+            return
+
         category = self.category_selector.currentText()
         subcategory = self.subcategory_selector.currentText()
         if category in self.categories and subcategory in self.categories[category]:
-            flashcards = self.categories[category][subcategory]
+            flashcards = [fc for fc in self.categories[category][subcategory] if fc.get("user_id") == self.current_user['id']]
             self.flashcard_table.setRowCount(len(flashcards))
             for i, flashcard in enumerate(flashcards):
                 self.flashcard_table.setItem(i, 0, QTableWidgetItem(flashcard["word"]))
@@ -691,28 +855,49 @@ class LanguageLearningApp(QWidget):
         self.quiz_performance_label.setText(f"Wyniki quizu: {self.correct_answers} poprawnych, {self.wrong_answers} błędnych")
 
     def add_flashcard(self):
+        if not self.current_user:
+            QMessageBox.warning(self, "Błąd", "Musisz być zalogowany, aby dodać fiszkę!")
+            return
+
         category = self.category_selector_creation.currentText()
         subcategory = self.subcategory_selector_creation.currentText()
         word = self.word_input.text().strip()
         translation = self.translation_input.text().strip()
         example_sentence = self.example_sentence_input.text().strip()
+
         if self.auto_translate_checkbox.isChecked() and not translation:
-            target_language = self.get_language_code(category)
+            target_language = get_language_code(category)
             try:
                 translation = self.translator.translate(word, dest=target_language).text
             except Exception as e:
                 self.creation_feedback_label.setText(f"Błąd tłumaczenia: {str(e)}")
                 return
+
+        if not example_sentence:
+            try:
+                example_sentence = generate_example_sentence(word, category)
+            except Exception as e:
+                self.creation_feedback_label.setText(f"Błąd generowania zdania: {str(e)}")
+                return
+
         if word and translation and category and subcategory:
+            # Zapisz fiszkę w bazie danych
+            query = "INSERT INTO flashcards (category, subcategory, word, translation, example_sentence, user_id) VALUES (%s, %s, %s, %s, %s, %s)"
+            self.db_manager.execute_query(query, (category, subcategory, word, translation, example_sentence, self.current_user['id']))
+
+            # Zapisz fiszkę w pliku JSON
+            if category not in self.categories:
+                self.categories[category] = {}
             if subcategory not in self.categories[category]:
                 self.categories[category][subcategory] = []
             self.categories[category][subcategory].append({
                 "word": word,
                 "translation": translation,
-                "example_sentence": example_sentence
+                "example_sentence": example_sentence,
+                "user_id": self.current_user['id']
             })
             self.save_data()
-            self.update_flashcard_table()
+
             self.creation_feedback_label.setText(f"Fiszka '{word}' została dodana!")
             self.word_input.clear()
             self.translation_input.clear()
@@ -813,6 +998,11 @@ class LanguageLearningApp(QWidget):
             "Hiszpański": "es"
         }
         return language_codes.get(language_name, "en")
+
+    def closeEvent(self, event):
+        self.db_manager.disconnect()
+        event.accept()
+
 
 if __name__ == "__main__":
     app = QApplication([])
